@@ -3,120 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الختمة رقم (1)</title>
+    <title>متابعة الختمة الجماعية</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 15px; text-align: center; color: #333; }
-        .container { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e0e0e0; }
-        h2 { color: #2c3e50; margin-bottom: 5px; font-size: 24px; }
-        .date-info { color: #7f8c8d; font-size: 14px; margin-bottom: 15px; }
-        
-        /* شريط التقدم */
-        .progress-box { background: #f9f9f9; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #eee; }
-        .progress-container { background: #dfe6e9; border-radius: 20px; height: 22px; position: relative; overflow: hidden; margin: 10px 0; }
-        .progress-bar { background: linear-gradient(90deg, #2ecc71, #27ae60); width: 0%; height: 100%; transition: width 0.8s ease; }
-        
-        /* العداد التنازلي */
-        .timer-container { background: #2d3436; color: #fab1a0; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; }
-        .timer-label { font-size: 12px; display: block; color: #dfe6e9; margin-bottom: 5px; }
-        #countdown { font-family: monospace; font-size: 18px; letter-spacing: 1px; }
-
-        /* قائمة الأسماء */
-        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 14px; border-bottom: 1px solid #f1f1f1; cursor: pointer; transition: 0.2s; border-radius: 8px; margin-bottom: 4px; }
-        .list-item:active { background: #f0f0f0; transform: scale(0.98); }
-        .list-item.done { background: #e8f5e9; border-left: 5px solid #2ecc71; }
-        .part-box { background: #ecf0f1; color: #2c3e50; font-weight: bold; border-radius: 6px; padding: 4px 10px; border: 1px solid #bdc3c7; font-size: 14px; min-width: 45px; }
-        .done .part-box { background: #2ecc71; color: white; border-color: #27ae60; }
-        .name-text { font-size: 16px; flex-grow: 1; text-align: right; margin-right: 15px; font-weight: 500; }
-        .status-icon { font-size: 18px; }
-        .special { background: #fff9db; border: 1px solid #ffe066; font-weight: bold; }
+        :root { --bg: #f0f2f5; --card: #ffffff; --primary: #2c3e50; --done: #27ae60; --text: #34495e; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .container { background: var(--card); width: 100%; max-width: 500px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+        h2 { margin-bottom: 10px; color: var(--primary); font-size: 1.5rem; }
+        .progress-box { background: #e0e0e0; height: 12px; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+        #bar { background: var(--done); width: 0%; height: 100%; transition: 0.5s ease; }
+        #stats { font-weight: bold; margin-bottom: 20px; display: block; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        button { aspect-ratio: 1; border: 2px solid var(--primary); background: white; color: var(--primary); border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button.completed { background: var(--done); color: white; border-color: var(--done); box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3); }
+        button:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📖 الـخِـتـمَـةُ رَقـم (1)</h2>
-    <div class="date-info">من 28 / 03 إلى 03 / 04</div>
+    <h2>﴿ ختْمَة مشتركة ﴾</h2>
+    <div class="progress-box"><div id="bar"></div></div>
+    <span id="stats">جاري التحميل...</span>
 
-    <div class="progress-box">
-        <div class="progress-container">
-            <div class="progress-bar" id="myBar"></div>
+    <div class="grid" id="grid">
         </div>
-        <b id="progress-text">الإنجاز: 0%</b>
-    </div>
-
-    <div class="timer-container">
-        <span class="timer-label">⏰ الـوقـتُ الـمُـتـبـقّـي لـلـخـتـم:</span>
-        <div id="countdown">جاري الحساب...</div>
-    </div>
-
-    <div id="main-list"></div>
 </div>
 
-<script>
-    const names = [
-        "محمد صالح الكعود", "ايمن المضحي", "شاهين بكور", "زين بشير", "علي عثمان",
-        "علي بشير", "قصي الكعود", "محمد الزعو", "بنيان مخيليل", "أيمن الصحوبي",
-        "مدلول حصيني", "عبود الملا", "محمود", "جمعة", "فادي مخيليل",
-        "عدنان عثمان", "حسين مخيليل", "رضوان السالم", "عامر المذري", "العكيد",
-        "ابراهيم صالح كعود", "نزهان الكعود", "حيدر المضحي", "حيدر الثلاج", "علي حسن الكعود",
-        "صطيف ابو حسين", "حسن الحاج علي", "حمودي عايد الكعود", "حسن مخيليل", "حمودي الملا"
-    ];
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    const listDiv = document.getElementById('main-list');
-    let doneCount = 0;
+    // إعدادات مشروعك التي أرسلتها
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWEURJFC2xJC9afCfIpNUno4XahVb8HAM",
+        authDomain: "khatma-85d12.firebaseapp.com",
+        databaseURL: "https://khatma-85d12-default-rtdb.firebaseio.com",
+        projectId: "khatma-85d12",
+        storageBucket: "khatma-85d12.firebasestorage.app",
+        messagingSenderId: "801962624693",
+        appId: "1:801962624693:web:764883064453e6e1e3a0fc"
+    };
 
-    // توليد القائمة
-    names.forEach((name, index) => {
-        const item = document.createElement('div');
-        item.className = 'list-item' + (index === 29 ? ' special' : '');
-        item.innerHTML = `
-            <div class="part-box">【 ${String(index + 1).padStart(2, '0')} 】</div>
-            <span class="name-text">${name}</span>
-            <span class="status-icon">⏳</span>
-        `;
-        
-        item.onclick = function() {
-            this.classList.toggle('done');
-            const icon = this.querySelector('.status-icon');
-            if (this.classList.contains('done')) {
-                icon.innerText = '✅';
-                doneCount++;
-            } else {
-                icon.innerText = '⏳';
-                doneCount--;
-            }
-            updateProgress();
-        };
-        listDiv.appendChild(item);
-    });
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const gridDiv = document.getElementById('grid');
+    const bar = document.getElementById('bar');
+    const stats = document.getElementById('stats');
 
-    function updateProgress() {
-        const percent = Math.round((doneCount / names.length) * 100);
-        document.getElementById('myBar').style.width = percent + '%';
-        document.getElementById('progress-text').innerText = `الإنجاز: ${percent}%`;
+    // إنشاء الأزرار الـ 30
+    for (let i = 1; i <= 30; i++) {
+        const btn = document.createElement('button');
+        btn.id = `p-${i}`;
+        btn.innerText = i;
+        btn.onclick = () => togglePart(i);
+        gridDiv.appendChild(btn);
     }
 
-    // وظيفة العداد التنازلي
-    function updateTimer() {
-        const endDate = new Date("April 03, 2026 23:59:59").getTime();
-        const now = new Date().getTime();
-        const distance = endDate - now;
+    // وظيفة الضغط لتحديث القيمة في Firebase للجميع
+    async function togglePart(num) {
+        const partRef = ref(db, 'live_khatma/part' + num);
+        const snapshot = await get(partRef);
+        const currentState = snapshot.val() || false;
+        set(partRef, !currentState);
+    }
 
-        if (distance < 0) {
-            document.getElementById("countdown").innerHTML = "انتهى وقت الختمة";
-            return;
+    // مراقبة التغييرات وتحديث الصفحة فوراً عند الجميع
+    onValue(ref(db, 'live_khatma'), (snapshot) => {
+        const data = snapshot.val() || {};
+        let count = 0;
+
+        for (let i = 1; i <= 30; i++) {
+            const btn = document.getElementById(`p-${i}`);
+            if (data['part' + i] === true) {
+                btn.classList.add('completed');
+                count++;
+            } else {
+                btn.classList.remove('completed');
+            }
         }
 
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        document.getElementById("countdown").innerHTML = 
-            days + " يوم و " + hours + ":" + minutes + ":" + seconds;
-    }
-
-    setInterval(updateTimer, 1000);
+        const percent = Math.round((count / 30) * 100);
+        bar.style.width = percent + '%';
+        stats.innerText = `الإنجاز: ${percent}% (${count} من 30)`;
+    });
 </script>
 
 </body>
