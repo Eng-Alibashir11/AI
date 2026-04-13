@@ -2,118 +2,49 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>كشف مناداة الحفر - معهد النفط</title>
+    <title>متابعة الختمة رقم 3</title>
     <style>
-        :root { --oil-dark: #1e272e; --oil-gold: #ffa801; --present-bg: #dff9fb; --present-text: #05c46b; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f1f2f6; margin: 0; padding: 10px; direction: rtl; }
-        .admin-panel { max-width: 1000px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 6px solid var(--oil-dark); }
-        h3 { text-align: center; color: var(--oil-dark); margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
-        th, td { border: 1px solid #ced4da; padding: 8px 4px; text-align: center; font-size: 0.85rem; }
-        th { background: var(--oil-dark); color: white; position: sticky; top: 0; }
-        
-        /* تصميم خلايا التحضير */
-        .cell-btn { cursor: pointer; transition: 0.2s; font-weight: bold; user-select: none; }
-        .cell-btn:hover { background: #f8f9fa; }
-        .is-present { background: var(--present-bg) !important; color: var(--present-text); }
-        .is-absent { color: #eb4d4b; }
-        
-        .total-col { background: #fdf9e7; font-weight: bold; color: #d35400; width: 40px; }
-        .grade-col { background: #f0fdf4; font-weight: bold; color: #27ae60; width: 45px; }
-        .name-col { text-align: right; padding-right: 10px; font-weight: 500; background: #fafafa; min-width: 150px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .quote { text-align: center; font-style: italic; color: #7f8c8d; margin-bottom: 20px; }
+        .progress-container { background: #eee; border-radius: 20px; margin: 20px 0; position: relative; height: 25px; }
+        .progress-bar { background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; border-radius: 20px; width: 16.6%; text-align: center; color: white; font-size: 14px; line-height: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background-color: #34495e; color: white; padding: 12px; text-align: right; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        tr:hover { background-color: #f1f1f1; }
+        .status-done { color: #27ae60; font-weight: bold; }
+        .status-wait { color: #95a5a6; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>📖 الـخِـتـمَـةُ رَقـم (3)</h1>
+        <p class="quote">﴿ إِنَّ هَذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ ﴾</p>
+        
+        <div class="progress-container">
+            <div class="progress-bar">16.6%</div>
+        </div>
+        <p style="text-align: center;"><b>المؤشر:</b> 05 من أصل 30 جزء</p>
 
-<div class="admin-panel">
-    <h3>📋 كشف مناداة طلاب قسم الحفر (10 دروس)</h3>
-    
-    <div style="overflow-x: auto;">
         <table>
             <thead>
                 <tr>
+                    <th>الورد</th>
                     <th>الاسم</th>
-                    <th>ح1</th><th>ح2</th><th>ح3</th><th>ح4</th><th>ح5</th>
-                    <th>ح6</th><th>ح7</th><th>ح8</th><th>ح9</th><th>ح10</th>
-                    <th>مجم</th>
-                    <th>درجة</th>
+                    <th>الحالة</th>
                 </tr>
             </thead>
-            <tbody id="attendance-table">
+            <tbody>
+                <tr><td>01</td><td>حسن مخيليل</td><td class="status-wait">⚪ قيد الانتظار</td></tr>
+                <tr><td>02</td><td>حمودي الملا</td><td class="status-done">💯 تم الإنجاز</td></tr>
+                <tr><td>04</td><td>ايمن المضحي</td><td class="status-done">💯 تم الإنجاز</td></tr>
+                <tr><td>10</td><td>محمد الزعو</td><td class="status-done">💯 تم الإنجاز</td></tr>
+                <tr><td>15</td><td>محمود</td><td class="status-done">💯 تم الإنجاز</td></tr>
+                <tr><td>16</td><td>خضر</td><td class="status-done">💯 تم الإنجاز</td></tr>
                 </tbody>
         </table>
     </div>
-    <p style="font-size: 0.75rem; color: #7f8c8d; text-align: center; margin-top: 15px;">* اضغط على (غ) لتحويله إلى (م) والعكس أثناء المناداة.</p>
-</div>
-
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyDWEURJFC2xJC9afCfIpNUno4XahVb8HAM",
-        authDomain: "khatma-85d12.firebaseapp.com",
-        databaseURL: "https://khatma-85d12-default-rtdb.firebaseio.com",
-        projectId: "khatma-85d12",
-        appId: "1:801962624693:web:764883064453e6e1e3a0fc"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const students = [
-        "إبراهيم أحمد السالم", "أحمد بلند شريف", "أحمد خالد الجمعة", "أحمد رفيق المخلف",
-        "أيهم ياسر الصوفي", "عبدالله محمد الجاسم", "عز الدين فايز الحريري", 
-        "علي حسن مبارك", "عمر ابراهيم الحسين", "فواز حميد المطر"
-    ];
-
-    const tableBody = document.getElementById('attendance-table');
-
-    // توليد الجدول
-    students.forEach((name, i) => {
-        const sid = i + 1;
-        let rowHtml = `<tr><td class="name-col">${sid}. ${name}</td>`;
-        for(let l=1; l<=10; l++) {
-            rowHtml += `<td id="s${sid}-l${l}" class="cell-btn is-absent" onclick="toggleAttendance(${sid}, ${l})">غ</td>`;
-        }
-        rowHtml += `<td id="total-${sid}" class="total-col">0</td>`;
-        rowHtml += `<td id="grade-${sid}" class="grade-col">0</td></tr>`;
-        tableBody.innerHTML += rowHtml;
-    });
-
-    // دالة تغيير الحالة عند الضغط
-    window.toggleAttendance = async (sid, lesson) => {
-        const r = ref(db, `oil_calling/std${sid}/L${lesson}`);
-        const snap = await get(r);
-        const currentStatus = snap.val() || false;
-        await set(r, !currentStatus); // عكس الحالة
-    };
-
-    // مزامنة البيانات والعمليات الحسابية
-    onValue(ref(db, 'oil_calling'), (snap) => {
-        const data = snap.val() || {};
-        students.forEach((_, i) => {
-            const sid = i + 1;
-            const stdData = data[`std${sid}`] || {};
-            let count = 0;
-            
-            for(let l=1; l<=10; l++) {
-                const cell = document.getElementById(`s${sid}-l${l}`);
-                if(stdData[`L${l}`]) {
-                    cell.innerText = "م";
-                    cell.className = "cell-btn is-present";
-                    count++;
-                } else {
-                    cell.innerText = "غ";
-                    cell.className = "cell-btn is-absent";
-                }
-            }
-            document.getElementById(`total-${sid}`).innerText = count;
-            document.getElementById(`grade-${sid}`).innerText = (count * 0.5).toFixed(1);
-        });
-    });
-</script>
 </body>
 </html>
