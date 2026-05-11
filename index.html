@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ختمة القرآن الاسبوعية</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,700&family=Changa:wght@300;500;700&display=swap');
+        :root { --main: #2e7d32; --bg: #f8faf9; --done-bg: #2e7d32; --accent: #c0a16b; --text: #333; }
+        
+        body { font-family: 'Changa', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text); }
+        
+        .header { background: var(--main); color: white; padding: 30px 20px; text-align: center; border-bottom: 4px solid var(--accent); cursor: pointer; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .quran-verse { font-family: 'Amiri', serif; font-size: 1.3rem; color: var(--accent); margin-top: 10px; font-style: italic; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        
+        .timer-container { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+        .timer-box { background: rgba(255,255,255,0.15); padding: 10px; border-radius: 12px; min-width: 65px; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); }
+        .timer-num { display: block; font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+        .timer-lab { font-size: 0.7rem; opacity: 0.9; }
+
+        .prog-area { background: white; padding: 15px; margin: 15px 10px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .bar-outer { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; margin: 8px 0; }
+        #bar-inner { background: linear-gradient(90deg, #4caf50, var(--main)); height: 100%; width: 0%; transition: 0.5s; }
+        .numerical-stats { display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.85rem; font-weight: bold; }
+        .stat-item { padding: 5px 10px; border-radius: 8px; }
+        .stat-done { background: #e8f5e9; color: var(--main); }
+        .stat-remain { background: #fbe9e7; color: #d32f2f; }
+
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; max-width: 600px; margin: auto; }
+        
+        /* تعديل الألوان هنا: الأبيض للغير منتهي والأخضر للمنتهي */
+        .card { background: white; border: 1px solid #ddd; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .card.finished { background: var(--done-bg); border-color: var(--main); color: white; }
+        .card-n { font-weight: 700; font-size: 1.1rem; display: block; color: var(--main); }
+        .card.finished .card-n { color: var(--accent); } /* رقم الجزء بلون ذهبي عند الانتهاء */
+        .card-u { font-size: 0.75rem; display: block; height: 1.2rem; overflow: hidden; }
+
+        .top-list-area { background: white; margin: 15px 10px 30px; padding: 15px; border-radius: 15px; border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .top-title { color: var(--main); margin-top: 0; font-size: 1rem; border-bottom: 2px solid var(--accent); padding-bottom: 8px; text-align: center; font-weight: 700; }
+        .winner-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; border-bottom: 1px dashed #eee; font-size: 0.85rem; }
+        .winner-name { font-weight: 700; color: #444; }
+        .winner-meta { color: #666; font-size: 0.75rem; text-align: left; line-height: 1.3; }
+
+        #admin-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; z-index: 2000; padding: 20px; border-radius: 20px; width: 90%; max-width: 450px; box-shadow: 0 0 50px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; }
+        .btn-act { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="ovl" onclick="toggleAdmin()"></div>
+
+<div id="admin-panel">
+    <h3 style="text-align:center;">➴ إعدادات الختمة ⧉</h3>
+    <button class="btn-act" style="background:var(--main); color:white;" onclick="startNewKhatma()">🚀 ختمة جديدة + إزاحة الأسماء</button>
+    <button class="btn-act" style="background:#f39c12; color:white;" onclick="resetAllStatus()">⟁ تصفير الإنجاز فقط</button>
+    <hr>
+    <div id="names-list"></div>
+    <button class="btn-act" style="background:#2980b9; color:white;" onclick="saveNames()">حفظ الأسماء 💾</button>
+</div>
+
+<div class="header" onclick="askAdmin()">
+    <h1 id="k-title" style="margin:0; font-size:1.6rem;">...</h1>
+    <div class="quran-verse">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلاً ﴾</div>
+    
+    <div class="timer-container">
+        <div class="timer-box"><span class="timer-num" id="d-val">0</span><span class="timer-lab">يوم</span></div>
+        <div class="timer-box"><span class="timer-num" id="h-val">0</span><span class="timer-lab">ساعة</span></div>
+        <div class="timer-box"><span class="timer-num" id="m-val">0</span><span class="timer-lab">دقيقة</span></div>
+    </div>
+</div>
+
+<div class="prog-area">
+    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight: bold;">
+        <span>➴ نسبة الإكمال</span>
+        <span id="perc">0%</span>
+    </div>
+    <div class="bar-outer"><div id="bar-inner"></div></div>
+    
+    <div class="numerical-stats">
+        <div class="stat-item stat-done">✔ منتهي: <span id="num-done">0</span></div>
+        <div class="stat-item stat-remain">✖ متبقي: <span id="num-rem">30</span></div>
+    </div>
+</div>
+
+<div class="grid" id="grid-container"></div>
+
+<div class="top-list-area">
+    <h4 class="top-title">🏆 لوحة الأوائل (فرسان الختمة)</h4>
+    <div id="leaderboard"></div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAPjrpRIeXlfGQVydcndV1etdy27455vVg",
+        authDomain: "khatma-test.firebaseapp.com",
+        databaseURL: "https://khatma-test-default-rtdb.firebaseio.com",
+        projectId: "khatma-test",
+        storageBucket: "khatma-test.firebasestorage.app",
+        messagingSenderId: "70199271332",
+        appId: "1:70199271332:web:5ea2400145c8917eefeb31"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let names = [];
+    let stats = {};
+    let khatmaTitle = "";
+
+    db.ref().on('value', snap => {
+        const data = snap.val();
+        if(!data) return;
+        names = data.settings.names || [];
+        stats = data.khatma_status || {};
+        khatmaTitle = data.settings.khatmaName || "ختمة جديدة";
+        document.getElementById('k-title').innerText = khatmaTitle;
+        render();
+        updateTimer();
+    });
+
+    function updateTimer() {
+        const now = new Date();
+        let friday = new Date();
+        friday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
+        friday.setHours(12, 0, 0, 0);
+        if (now > friday) friday.setDate(friday.getDate() + 7);
+
+        const diff = friday - now;
+        document.getElementById('d-val').innerText = Math.floor(diff / 86400000);
+        document.getElementById('h-val').innerText = Math.floor((diff % 86400000) / 3600000);
+        document.getElementById('m-val').innerText = Math.floor((diff % 3600000) / 60000);
+    }
+
+    function render() {
+        const container = document.getElementById('grid-container');
+        container.innerHTML = "";
+        let doneList = [];
+
+        for(let i=0; i<30; i++) {
+            const isDone = stats[i]?.done;
+            if(isDone) doneList.push({ id: i, name: names[i], time: stats[i].time, date: stats[i].date, unix: stats[i].unix });
+            
+            const card = document.createElement('div');
+            card.className = `card ${isDone ? 'finished' : ''}`;
+            card.innerHTML = `<span class="card-n">${i+1}</span><span class="card-u">${names[i]}</span>`;
+            card.onclick = () => handleToggle(i);
+            container.appendChild(card);
+        }
+
+        const doneCount = doneList.length;
+        document.getElementById('num-done').innerText = doneCount;
+        document.getElementById('num-rem').innerText = 30 - doneCount;
+        
+        const p = Math.round((doneCount / 30) * 100);
+        document.getElementById('bar-inner').style.width = p + "%";
+        document.getElementById('perc').innerText = p + "%";
+
+        doneList.sort((a, b) => a.unix - b.unix);
+        const leaderContent = doneList.slice(0, 5).map((w, idx) => `
+            <div class="winner-row">
+                <span class="winner-name">${idx+1}. ${w.name}</span>
+                <span class="winner-meta">📅 ${w.date || '--'}<br>⏱ ${w.time}</span>
+            </div>
+        `).join('');
+        document.getElementById('leaderboard').innerHTML = leaderContent || "<p style='text-align:center; font-size:0.75rem; color:#aaa;'>بانتظار المنجزين...</p>";
+    }
+
+    function handleToggle(id) {
+        const mySavedPart = localStorage.getItem('myPart');
+        if(stats[id]?.done) {
+            if (mySavedPart == id) {
+                if(confirm("➴ إلغاء القراءة لهذا الجزء؟")) {
+                    db.ref('khatma_status/' + id).remove().then(() => localStorage.removeItem('myPart'));
+                }
+            } else { alert("هذا الجزء محجوز لزميل آخر."); }
+        } else {
+            if (mySavedPart !== null) {
+                alert("يرجى إلغاء الجزء رقم (" + (parseInt(mySavedPart)+1) + ") أولاً.");
+                return;
+            }
+            const now = new Date();
+            const timeStr = now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0');
+            const dateStr = now.toLocaleDateString('ar-EG');
+            
+            db.ref('khatma_status/' + id).set({done: true, time: timeStr, date: dateStr, unix: Date.now()}).then(() => {
+                localStorage.setItem('myPart', id);
+                const msg = `*تمت التلاوة والحمد لله* ➴%0A%0A*الختمة:* ${khatmaTitle}%0A*الاسم:* ${names[id]}%0A*الجزء:* ${id+1}%0A*التاريخ والوقت:* ${dateStr} - ${timeStr}`;
+                window.open(`https://wa.me/?text=${msg}`, '_blank');
+            });
+        }
+    }
+
+    function askAdmin() { if(prompt("الرمز:") === "1234") toggleAdmin(); }
+    function toggleAdmin() {
+        const p = document.getElementById('admin-panel');
+        const o = document.getElementById('ovl');
+        const show = p.style.display !== 'block';
+        p.style.display = show ? 'block' : 'none';
+        o.style.display = show ? 'block' : 'none';
+        if(show) {
+            document.getElementById('names-list').innerHTML = names.map((n, i) => 
+                `<div style="margin:4px;">${i+1} <input type="text" id="in-${i}" value="${n}" style="width:80%; padding:4px;"></div>`).join('');
+        }
+    }
+
+    function startNewKhatma() {
+        const t = prompt("عنوان الختمة الجديدة:");
+        if(!t) return;
+        let newNames = [...names];
+        const last = newNames.pop();
+        newNames.unshift(last); 
+        db.ref('settings').set({names: newNames, khatmaName: t});
+        db.ref('khatma_status').remove();
+        localStorage.removeItem('myPart');
+        toggleAdmin();
+    }
+
+    function resetAllStatus() { if(confirm("تصفير الإنجاز فقط؟")) db.ref('khatma_status').remove(); localStorage.removeItem('myPart'); }
+    function saveNames() {
+        let n = [];
+        for(let i=0; i<30; i++) n.push(document.getElementById(`in-${i}`).value);
+        db.ref('settings/names').set(n).then(() => { alert("تم الحفظ 💾"); toggleAdmin(); });
+    }
+
+    setInterval(updateTimer, 60000);
+</script>
+</body>
+</html>
