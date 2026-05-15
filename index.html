@@ -38,8 +38,8 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; }
         .btn-act { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; font-family: 'Changa', sans-serif; }
         .reset-single { background: #e74c3c; color: white; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; cursor: pointer; }
-        /* نمط قفل الموقع */
-        .locked { opacity: 0.5; pointer-events: none; }
+        /* نمط القفل */
+        .locked-mode { opacity: 0.6; filter: grayscale(50%); cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -58,14 +58,14 @@
 <div class="header" onclick="askAdmin()">
     <h1 id="k-title" style="margin:0; font-size:1.6rem;">...</h1>
     <div class="quran-verse">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلاً ﴾</div>
-    <div class="timer-container" id="timer-ui">
+    <div class="timer-container">
         <div class="timer-box"><span class="timer-num" id="d-val">0</span><span>يوم</span></div>
         <div class="timer-box"><span class="timer-num" id="h-val">0</span><span>ساعة</span></div>
         <div class="timer-box"><span class="timer-num" id="m-val">0</span><span>دقيقة</span></div>
     </div>
 </div>
 
-<div id="main-content">
+<div id="main-view">
     <div class="prog-area">
         <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight: bold;">
             <span>❇ نسبة الإكمال</span>
@@ -103,7 +103,8 @@
 
     db.ref().on('value', snap => {
         const data = snap.val(); if(!data) return;
-        names = data.settings.names || []; stats = data.khatma_status || {};
+        names = data.settings.names || []; 
+        stats = data.khatma_status || {};
         khatmaTitle = data.settings.khatmaName || "ختمة جديدة";
         isLocked = data.settings.isLocked || false;
         document.getElementById('k-title').innerText = khatmaTitle;
@@ -112,14 +113,11 @@
 
     function render() {
         const container = document.getElementById('grid-container');
-        const mainContent = document.getElementById('main-content');
+        const mainView = document.getElementById('main-view');
         container.innerHTML = ""; let doneList = [];
         
-        if(isLocked) {
-            mainContent.classList.add('locked');
-        } else {
-            mainContent.classList.remove('locked');
-        }
+        if(isLocked) mainView.classList.add('locked-mode');
+        else mainView.classList.remove('locked-mode');
 
         for(let i=0; i<30; i++) {
             const isDone = stats[i]?.done;
@@ -144,7 +142,7 @@
     }
 
     function handleToggle(id) {
-        if(isLocked) { alert("انتهى وقت الختمة الحالية. بانتظار بدء الختمة الجديدة من المسؤول."); return; }
+        if(isLocked) { alert("الوقت انتهى. بانتظار المدير لبدء الختمة الجديدة."); return; }
         const mySavedPart = localStorage.getItem('myPart');
         if(stats[id]?.done) {
             if (mySavedPart == id) {
@@ -163,40 +161,21 @@
         }
     }
 
-    function shareKhatmaLink() {
-        const webLink = "https://eng-alibashir11.github.io/AI/"; 
-        const title = document.getElementById('k-title').innerText;
-        const msg = `📖 *منصة الختمة الأسبوعية* 📖%0A%0A*العنوان:* ${title}%0A%0A🔗 *رابط المشاركة المباشر:*%0A${webLink}`;
-        
-        if (navigator.share) {
-            navigator.share({ title: title, url: webLink }).catch(() => window.open(`https://wa.me/?text=${msg}`, '_blank'));
-        } else {
-            window.open(`https://wa.me/?text=${msg}`, '_blank');
-        }
-    }
-
     function updateTimer() {
-        if(isLocked) {
+        if (isLocked) {
             document.getElementById('d-val').innerText = "0";
             document.getElementById('h-val').innerText = "0";
             document.getElementById('m-val').innerText = "0";
             return;
         }
-
-        const now = new Date(); 
-        let targetFriday = new Date();
-        // الحصول على يوم الجمعة القادم الساعة 12 ظهراً
-        targetFriday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
-        targetFriday.setHours(12, 0, 0, 0);
-
-        // إذا كان اليوم هو الجمعة وتجاوزنا الـ 12 ظهراً، نستهدف الجمعة القادمة (هذا للمنطق الداخلي)
-        if (now >= targetFriday) {
-            // تفعيل القفل تلقائياً في Firebase إذا لم يكن مفعلاً
+        const now = new Date(); let friday = new Date();
+        friday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7); friday.setHours(12, 0, 0, 0);
+        
+        if (now >= friday) {
             db.ref('settings/isLocked').set(true);
             return;
         }
-
-        const diff = targetFriday - now;
+        const diff = friday - now;
         document.getElementById('d-val').innerText = Math.floor(diff / 86400000);
         document.getElementById('h-val').innerText = Math.floor((diff % 86400000) / 3600000);
         document.getElementById('m-val').innerText = Math.floor((diff % 3600000) / 60000);
@@ -215,18 +194,26 @@
                 </div>`).join('');
         }
     }
-    function resetOne(id) { if(confirm(`تصفير الجزء ${id+1}؟`)) db.ref('khatma_status/' + id).remove().then(() => toggleAdmin()); }
     
     function startNewKhatma() {
         const t = prompt("العنوان:"); if(!t) return;
         let nNames = [...names]; nNames.unshift(nNames.pop()); 
-        // إعادة تعيين القفل والاسم الجديد وتصفير الحالة
-        db.ref('settings').set({names: nNames, khatmaName: t, isLocked: false}); 
+        // تعديل أساسي: إرسال isLocked: false لفتح الموقع
+        db.ref('settings').update({names: nNames, khatmaName: t, isLocked: false}); 
         db.ref('khatma_status').remove();
         localStorage.removeItem('myPart'); toggleAdmin();
     }
     
+    function shareKhatmaLink() {
+        const webLink = "https://eng-alibashir11.github.io/AI/"; 
+        const title = document.getElementById('k-title').innerText;
+        const msg = `📖 *منصة الختمة الأسبوعية* 📖%0A%0A*العنوان:* ${title}%0A%0A🔗 *رابط المشاركة المباشر:*%0A${webLink}`;
+        if (navigator.share) navigator.share({ title: title, url: webLink });
+        else window.open(`https://wa.me/?text=${msg}`, '_blank');
+    }
+
     function resetAllStatus() { if(confirm("تصفير الكل؟")) db.ref('khatma_status').remove(); localStorage.removeItem('myPart'); }
+    function resetOne(id) { if(confirm(`تصفير الجزء ${id+1}؟`)) db.ref('khatma_status/' + id).remove().then(() => toggleAdmin()); }
     function saveNames() {
         let n = []; for(let i=0; i<30; i++) n.push(document.getElementById(`in-${i}`).value);
         db.ref('settings/names').set(n).then(() => { alert("حفظ ✅"); toggleAdmin(); });
