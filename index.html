@@ -38,6 +38,8 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; }
         .btn-act { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; font-family: 'Changa', sans-serif; }
         .reset-single { background: #e74c3c; color: white; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; cursor: pointer; }
+        /* نمط قفل الموقع */
+        .locked { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -56,29 +58,31 @@
 <div class="header" onclick="askAdmin()">
     <h1 id="k-title" style="margin:0; font-size:1.6rem;">...</h1>
     <div class="quran-verse">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلاً ﴾</div>
-    <div class="timer-container">
+    <div class="timer-container" id="timer-ui">
         <div class="timer-box"><span class="timer-num" id="d-val">0</span><span>يوم</span></div>
         <div class="timer-box"><span class="timer-num" id="h-val">0</span><span>ساعة</span></div>
         <div class="timer-box"><span class="timer-num" id="m-val">0</span><span>دقيقة</span></div>
     </div>
 </div>
 
-<div class="prog-area">
-    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight: bold;">
-        <span>❇ نسبة الإكمال</span>
-        <span id="perc" style="font-family: sans-serif;">0%</span>
+<div id="main-content">
+    <div class="prog-area">
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight: bold;">
+            <span>❇ نسبة الإكمال</span>
+            <span id="perc" style="font-family: sans-serif;">0%</span>
+        </div>
+        <div class="bar-outer"><div id="bar-inner"></div></div>
+        <div class="numerical-stats">
+            <div style="color:var(--main)">المنجز: <span id="num-done">0</span></div>
+            <div style="color:#d32f2f">المتبقي: <span id="num-rem">30</span></div>
+        </div>
     </div>
-    <div class="bar-outer"><div id="bar-inner"></div></div>
-    <div class="numerical-stats">
-        <div style="color:var(--main)">المنجز: <span id="num-done">0</span></div>
-        <div style="color:#d32f2f">المتبقي: <span id="num-rem">30</span></div>
-    </div>
-</div>
 
-<div class="grid" id="grid-container"></div>
-<div class="top-list-area">
-    <h4 class="top-title">🏆 لوحة الأوائل (فرسان الختمة)</h4>
-    <div id="leaderboard"></div>
+    <div class="grid" id="grid-container"></div>
+    <div class="top-list-area">
+        <h4 class="top-title">🏆 لوحة الأوائل (فرسان الختمة)</h4>
+        <div id="leaderboard"></div>
+    </div>
 </div>
 
 <script>
@@ -95,18 +99,28 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let names = []; let stats = {}; let khatmaTitle = "";
+    let isLocked = false;
 
     db.ref().on('value', snap => {
         const data = snap.val(); if(!data) return;
         names = data.settings.names || []; stats = data.khatma_status || {};
         khatmaTitle = data.settings.khatmaName || "ختمة جديدة";
+        isLocked = data.settings.isLocked || false;
         document.getElementById('k-title').innerText = khatmaTitle;
         render(); updateTimer();
     });
 
     function render() {
         const container = document.getElementById('grid-container');
+        const mainContent = document.getElementById('main-content');
         container.innerHTML = ""; let doneList = [];
+        
+        if(isLocked) {
+            mainContent.classList.add('locked');
+        } else {
+            mainContent.classList.remove('locked');
+        }
+
         for(let i=0; i<30; i++) {
             const isDone = stats[i]?.done;
             if(isDone) doneList.push({ id: i, name: names[i], time: stats[i].time, date: stats[i].date, unix: stats[i].unix });
@@ -130,6 +144,7 @@
     }
 
     function handleToggle(id) {
+        if(isLocked) { alert("انتهى وقت الختمة الحالية. بانتظار بدء الختمة الجديدة من المسؤول."); return; }
         const mySavedPart = localStorage.getItem('myPart');
         if(stats[id]?.done) {
             if (mySavedPart == id) {
@@ -161,10 +176,27 @@
     }
 
     function updateTimer() {
-        const now = new Date(); let friday = new Date();
-        friday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7); friday.setHours(12, 0, 0, 0);
-        if (now > friday) friday.setDate(friday.getDate() + 7);
-        const diff = friday - now;
+        if(isLocked) {
+            document.getElementById('d-val').innerText = "0";
+            document.getElementById('h-val').innerText = "0";
+            document.getElementById('m-val').innerText = "0";
+            return;
+        }
+
+        const now = new Date(); 
+        let targetFriday = new Date();
+        // الحصول على يوم الجمعة القادم الساعة 12 ظهراً
+        targetFriday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
+        targetFriday.setHours(12, 0, 0, 0);
+
+        // إذا كان اليوم هو الجمعة وتجاوزنا الـ 12 ظهراً، نستهدف الجمعة القادمة (هذا للمنطق الداخلي)
+        if (now >= targetFriday) {
+            // تفعيل القفل تلقائياً في Firebase إذا لم يكن مفعلاً
+            db.ref('settings/isLocked').set(true);
+            return;
+        }
+
+        const diff = targetFriday - now;
         document.getElementById('d-val').innerText = Math.floor(diff / 86400000);
         document.getElementById('h-val').innerText = Math.floor((diff % 86400000) / 3600000);
         document.getElementById('m-val').innerText = Math.floor((diff % 3600000) / 60000);
@@ -184,12 +216,16 @@
         }
     }
     function resetOne(id) { if(confirm(`تصفير الجزء ${id+1}؟`)) db.ref('khatma_status/' + id).remove().then(() => toggleAdmin()); }
+    
     function startNewKhatma() {
         const t = prompt("العنوان:"); if(!t) return;
         let nNames = [...names]; nNames.unshift(nNames.pop()); 
-        db.ref('settings').set({names: nNames, khatmaName: t}); db.ref('khatma_status').remove();
+        // إعادة تعيين القفل والاسم الجديد وتصفير الحالة
+        db.ref('settings').set({names: nNames, khatmaName: t, isLocked: false}); 
+        db.ref('khatma_status').remove();
         localStorage.removeItem('myPart'); toggleAdmin();
     }
+    
     function resetAllStatus() { if(confirm("تصفير الكل؟")) db.ref('khatma_status').remove(); localStorage.removeItem('myPart'); }
     function saveNames() {
         let n = []; for(let i=0; i<30; i++) n.push(document.getElementById(`in-${i}`).value);
