@@ -18,7 +18,7 @@
         :root { --main: #2e7d32; --bg: #f8faf9; --done-bg: #2e7d32; --accent: #c0a16b; --text: #333; }
         body { font-family: 'Changa', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text); }
         .header { background: var(--main); color: white; padding: 30px 20px; text-align: center; border-bottom: 4px solid var(--accent); cursor: pointer; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; }
-        .quran-verse { font-family: 'Amiri', serif; font-size: 1.3rem; color: var(--accent); margin-top: 10px; font-style: italic; }
+        .quran-verse { font-family: 'Amiri', serif; font-size: 1.2rem; color: var(--accent); margin-top: 10px; font-style: italic; transition: all 0.3s ease; background: rgba(0,0,0,0.15); display: inline-block; padding: 5px 15px; border-radius: 40px; backdrop-filter: blur(2px); max-width: 90%; line-height: 1.4; }
         .timer-container { display: flex; justify-content: center; gap: 10px; margin-top: 20px; font-family: 'Changa', sans-serif; }
         .timer-box { background: rgba(255,255,255,0.15); padding: 10px; border-radius: 12px; min-width: 65px; border: 1px solid rgba(255,255,255,0.3); }
         .timer-num { display: block; font-size: 1.4rem; font-weight: 700; color: var(--accent); }
@@ -38,6 +38,11 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; }
         .btn-act { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; font-family: 'Changa', sans-serif; }
         .reset-single { background: #e74c3c; color: white; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; cursor: pointer; }
+        .admin-code-input { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+        .admin-code-input input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-family: monospace; font-size: 1rem; text-align: center; }
+        .btn-small { background: #16a085; color: white; padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .custom-ayah-input { display: flex; gap: 8px; margin-top: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .custom-ayah-input input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-family: 'Amiri', serif; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -46,16 +51,36 @@
 <div id="admin-panel">
     <h3 style="text-align:center;">❂ إعدادات الختمة ⚝</h3>
     <button class="btn-act" style="background:var(--main); color:white;" onclick="startNewKhatma()">⎆ ختمة جديدة + إزاحة الأسماء</button>
+    <button class="btn-act" style="background:#e67e22; color:white;" onclick="sendKhatmaReportToWhatsApp()">💬 إرسال تقرير الختمة للواتساب</button>
     <button class="btn-act" style="background:#f39c12; color:white;" onclick="resetAllStatus()">✧ تصفير الإنجاز بالكامل</button>
     <button class="btn-act" style="background:#0088cc; color:white;" onclick="shareKhatmaLink()">🔗 مشاركة رابط الختمة للمجموعة</button>
     <hr>
+    
+    <div style="background:#f5f5dc; padding:10px; border-radius:12px; margin-bottom:10px;">
+        <div style="font-weight:bold; margin-bottom:8px;">📖 تثبيت آية الأسبوع (اكتب ما تريد)</div>
+        <div class="custom-ayah-input">
+            <input type="text" id="customAyahInput" placeholder="مثال: ﴿ رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً ﴾" style="flex:2;">
+            <button class="btn-small" onclick="saveCustomAyah()">تثبيت الآية</button>
+        </div>
+        <div style="font-size:0.7rem; color:#666;">💡 اتركها فارغة لاستخدام آية عشوائية من القائمة</div>
+    </div>
+    
     <div id="names-list"></div>
     <button class="btn-act" style="background:#2980b9; color:white;" onclick="saveNames()">حفظ الأسماء 💾</button>
+    <hr>
+    <div style="background:#f0f0f0; padding:10px; border-radius:12px; margin-top:10px;">
+        <div style="font-weight:bold; margin-bottom:8px;">🔐 تغيير رمز الدخول للوحة الإدارة</div>
+        <div class="admin-code-input">
+            <input type="password" id="newAdminCodeInput" placeholder="الرمز الجديد" maxlength="10" inputmode="numeric" pattern="\d*">
+            <button class="btn-small" onclick="changeAdminCode()">تغيير الرمز</button>
+        </div>
+        <div style="font-size:0.7rem; color:#666; margin-top:5px;">الرمز الحالي: <span id="currentCodeDisplay">••••</span></div>
+    </div>
 </div>
 
 <div class="header" onclick="askAdmin()">
     <h1 id="k-title" style="margin:0; font-size:1.6rem;">...</h1>
-    <div class="quran-verse">﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلاً ﴾</div>
+    <div id="randomAyah" class="quran-verse">﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾</div>
     <div class="timer-container">
         <div class="timer-box"><span class="timer-num" id="d-val">0</span><span>يوم</span></div>
         <div class="timer-box"><span class="timer-num" id="h-val">0</span><span>ساعة</span></div>
@@ -94,12 +119,246 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let names = []; let stats = {}; let khatmaTitle = "";
+    
+    // ================ قائمة آيات قصيرة (احتياطية في حال ترك الحقل فارغاً) ================
+    const AYAH_COLLECTION = [
+        "﴿ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ﴾",
+        "﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾",
+        "﴿ رَبِّ زِدْنِي عِلْمًا ﴾",
+        "﴿ وَتَوَكَّلْ عَلَى اللَّهِ ﴾",
+        "﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾",
+        "﴿ فَاذْكُرُونِي أَذْكُرْكُمْ ﴾",
+        "﴿ رَبَّنَا آتِنَا حَسَنَةً ﴾",
+        "﴿ رَبَّنَا تَقَبَّلْ مِنَّا ﴾",
+        "﴿ رَبِّ هَبْ لِي حُكْمًا ﴾",
+        "﴿ سُبْحَانَ رَبِّكَ رَبِّ الْعِزَّةِ ﴾",
+        "﴿ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ﴾",
+        "﴿ تَبَارَكَ اسْمُ رَبِّكَ ﴾",
+        "﴿ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ ﴾",
+        "﴿ حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ ﴾",
+        "﴿ إِنَّ اللَّهَ يُحِبُّ التَّوَّابِينَ ﴾",
+        "﴿ إِنَّ اللَّهَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ ﴾",
+        "﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾"
+    ];
+    
+    // دالة لتحديد آية الأسبوع (تفضيلية: من الحقل المخصص أولاً)
+    let currentWeeklyAyah = AYAH_COLLECTION[0];
+    
+    function getStartOfWeek() {
+        const now = new Date();
+        const day = now.getDay();
+        const diffToSaturday = (day === 0 ? -1 : day - 6);
+        const saturday = new Date(now);
+        saturday.setDate(now.getDate() + diffToSaturday);
+        saturday.setHours(0, 0, 0, 0);
+        return saturday;
+    }
+    
+    function getWeeklyAyah() {
+        const weekStart = getStartOfWeek();
+        const weekKey = weekStart.toISOString().split('T')[0];
+        
+        // أولاً: نتحقق من وجود آية مخصصة من المستخدم
+        const storedCustomAyah = localStorage.getItem(`customAyah_${weekKey}`);
+        if (storedCustomAyah && storedCustomAyah.trim() !== "") {
+            return storedCustomAyah;
+        }
+        
+        // ثانياً: نتحقق من وجود آية عشوائية سابقة
+        const storedAyah = localStorage.getItem(`weeklyAyah_${weekKey}`);
+        if (storedAyah) {
+            return storedAyah;
+        } else {
+            // ثالثاً: نختار آية عشوائية من القائمة
+            const randomIndex = Math.floor(Math.random() * AYAH_COLLECTION.length);
+            const newAyah = AYAH_COLLECTION[randomIndex];
+            localStorage.setItem(`weeklyAyah_${weekKey}`, newAyah);
+            return newAyah;
+        }
+    }
+    
+    function setWeeklyAyah() {
+        currentWeeklyAyah = getWeeklyAyah();
+        const ayahElement = document.getElementById('randomAyah');
+        if (ayahElement) {
+            ayahElement.textContent = currentWeeklyAyah;
+        }
+        // عرض الآية الحالية في حقل الإدخال عند فتح لوحة التحكم
+        const inputField = document.getElementById('customAyahInput');
+        if (inputField) {
+            const weekStart = getStartOfWeek();
+            const weekKey = weekStart.toISOString().split('T')[0];
+            const customAyah = localStorage.getItem(`customAyah_${weekKey}`);
+            if (customAyah) {
+                inputField.value = customAyah;
+            } else {
+                inputField.value = currentWeeklyAyah;
+            }
+        }
+    }
+    
+    function getCurrentWeeklyAyah() {
+        return currentWeeklyAyah;
+    }
+    
+    // دالة لحفظ الآية المخصصة من المستخدم
+    window.saveCustomAyah = function() {
+        const inputField = document.getElementById('customAyahInput');
+        let customText = inputField.value.trim();
+        const weekStart = getStartOfWeek();
+        const weekKey = weekStart.toISOString().split('T')[0];
+        
+        if (customText === "") {
+            // إذا كان الحقل فارغاً، نحذف الآية المخصصة ونستخدم العشوائية
+            localStorage.removeItem(`customAyah_${weekKey}`);
+            // حذف الآية العشوائية المخزنة لتوليد واحدة جديدة
+            localStorage.removeItem(`weeklyAyah_${weekKey}`);
+            setWeeklyAyah();
+            alert("✅ تم التبديل إلى الوضع العشوائي (سيتم اختيار آية تلقائياً)");
+        } else {
+            // حفظ الآية المخصصة
+            localStorage.setItem(`customAyah_${weekKey}`, customText);
+            currentWeeklyAyah = customText;
+            const ayahElement = document.getElementById('randomAyah');
+            if (ayahElement) ayahElement.textContent = currentWeeklyAyah;
+            alert("✅ تم تثبيت الآية الجديدة لهذا الأسبوع");
+        }
+    };
+    
+    // الرموز الثابتة للأسبوع (🌍 و ❗ و <- و ) و ()
+    let currentWeeklySymbols = {
+        globeSymbol: "🌍",
+        exclamationSymbol: "❗",
+        arrowSymbol: "<-",
+        bracketStart: "(",
+        bracketEnd: ")"
+    };
+    
+    const GLOBE_POOL = ["🌍", "🌎", "🌏", "🌐"];
+    const EXCLAMATION_POOL = ["❗", "❕", "🔴", "⚡", "💥", "🔔", "📌", "⚠️", "‼️"];
+    const ARROW_POOL = ["<-", "←", "➡️", "⬅️", "🔜", "➖"];
+    const BRACKET_START_POOL = ["(", "[", "{", "⟨", "【", "〔", "《"];
+    const BRACKET_END_POOL = [")", "]", "}", "⟩", "】", "〕", "》"];
+    
+    function getWeeklySymbols() {
+        const weekStart = getStartOfWeek();
+        const weekKey = weekStart.toISOString().split('T')[0];
+        const storedSymbols = localStorage.getItem(`weeklySymbolsV2_${weekKey}`);
+        if (storedSymbols) {
+            return JSON.parse(storedSymbols);
+        } else {
+            const randomGlobe = GLOBE_POOL[Math.floor(Math.random() * GLOBE_POOL.length)];
+            const randomExclamation = EXCLAMATION_POOL[Math.floor(Math.random() * EXCLAMATION_POOL.length)];
+            const randomArrow = ARROW_POOL[Math.floor(Math.random() * ARROW_POOL.length)];
+            const randomBracketStart = BRACKET_START_POOL[Math.floor(Math.random() * BRACKET_START_POOL.length)];
+            const randomBracketEnd = BRACKET_END_POOL[Math.floor(Math.random() * BRACKET_END_POOL.length)];
+            
+            const newSymbols = {
+                globeSymbol: randomGlobe,
+                exclamationSymbol: randomExclamation,
+                arrowSymbol: randomArrow,
+                bracketStart: randomBracketStart,
+                bracketEnd: randomBracketEnd
+            };
+            localStorage.setItem(`weeklySymbolsV2_${weekKey}`, JSON.stringify(newSymbols));
+            return newSymbols;
+        }
+    }
+    
+    function setWeeklySymbols() {
+        currentWeeklySymbols = getWeeklySymbols();
+    }
+    
+    function refreshWeeklySymbols() {
+        const weekStart = getStartOfWeek();
+        const weekKey = weekStart.toISOString().split('T')[0];
+        localStorage.removeItem(`weeklySymbolsV2_${weekKey}`);
+        setWeeklySymbols();
+    }
+    
+    setWeeklyAyah();
+    setWeeklySymbols();
+    
+    setInterval(() => {
+        const newAyah = getWeeklyAyah();
+        if (newAyah !== currentWeeklyAyah) {
+            currentWeeklyAyah = newAyah;
+            const ayahElement = document.getElementById('randomAyah');
+            if (ayahElement) ayahElement.textContent = currentWeeklyAyah;
+        }
+        const newSymbols = getWeeklySymbols();
+        if (JSON.stringify(newSymbols) !== JSON.stringify(currentWeeklySymbols)) {
+            currentWeeklySymbols = newSymbols;
+        }
+    }, 60 * 60 * 1000);
+    
+    // الأسماء الكاملة
+    const defaultNames = [
+        "حيدر المضحي", "حيدر الثلاج", "علي حسن الكعود", "صطيف ابو حسين", "حسن الحاج علي",
+        "حمودي عايد الكعود", "حسن مخيليل", "حمودي الملا", "محمد صالح الكعود", "ايمن المضحي",
+        "شاهين بكور", "زين بشير", "علي عثمان", "علي بشير", "قصي الكعود",
+        "محمد الزعو", "بنيان مخيليل", "أيمن الصحوبي", "مدلول حصيني", "عبود الملا",
+        "محمود", "خضر", "فادي مخيليل", "عدنان عثمان", "حسين مخيليل",
+        "رضوان السالم", "عامر المذري", "العكيد", "صالح حسين الكعود", "نزهان الكعود"
+    ];
 
+    let names = []; let stats = {}; let khatmaTitle = "";
+    let adminCode = "1234";
+    
+    function loadAdminCode() {
+        db.ref('settings/adminCode').once('value', (snap) => {
+            if(snap.exists()) {
+                adminCode = snap.val();
+            } else {
+                db.ref('settings/adminCode').set("1234");
+                adminCode = "1234";
+            }
+            updateCodeDisplay();
+        });
+    }
+    
+    function updateCodeDisplay() {
+        const displaySpan = document.getElementById('currentCodeDisplay');
+        if(displaySpan) displaySpan.innerText = "●'.'●";
+    }
+    
+    window.changeAdminCode = function() {
+        const newCodeInput = document.getElementById('newAdminCodeInput');
+        let newCode = newCodeInput.value.trim();
+        if(newCode === "") {
+            alert("الرجاء إدخال رمز جديد");
+            return;
+        }
+        if(!/^\d+$/.test(newCode)) {
+            alert("الرمز يجب أن يحتوي على أرقام فقط");
+            return;
+        }
+        db.ref('settings/adminCode').set(newCode).then(() => {
+            adminCode = newCode;
+            updateCodeDisplay();
+            alert(`✅ تم تغيير رمز الدخول بنجاح إلى: ${newCode}`);
+            newCodeInput.value = "";
+        }).catch(err => {
+            alert("حدث خطأ أثناء حفظ الرمز");
+            console.error(err);
+        });
+    };
+    
+    loadAdminCode();
+    db.ref('settings/adminCode').on('value', (snap) => {
+        if(snap.exists()) adminCode = snap.val();
+        else adminCode = "1234";
+    });
+    
+    const defaultNamesList = [...defaultNames];
     db.ref().on('value', snap => {
-        const data = snap.val(); if(!data) return;
-        names = data.settings.names || []; stats = data.khatma_status || {};
-        khatmaTitle = data.settings.khatmaName || "ختمة جديدة";
+        const data = snap.val();
+        if(!data || !data.settings || !data.settings.names) {
+            db.ref('settings').update({ names: defaultNamesList, khatmaName: "الختمة القرآنية رقم (9)" });
+            return;
+        }
+        names = data.settings.names || defaultNamesList; stats = data.khatma_status || {};
+        khatmaTitle = data.settings.khatmaName || "الختمة القرآنية";
         document.getElementById('k-title').innerText = khatmaTitle;
         render(); updateTimer();
     });
@@ -129,14 +388,10 @@
             </div>`).join('') || "<p style='text-align:center; font-size:0.7rem; color:#aaa;'>بانتظار المنجزين...</p>";
     }
 
-    // دالة للتحقق من حالة القفل
     function checkIsLocked() {
         const now = new Date();
-        const day = now.getDay(); // 5 = الجمعة، 6 = السبت
+        const day = now.getDay(); 
         const hour = now.getHours();
-
-        // من الجمعة الساعة 12 ظهراً (day 5, hour >= 12) 
-        // حتى السبت الساعة 8 صباحاً (day 6, hour < 8)
         if ((day === 5 && hour >= 12) || (day === 6 && hour < 8)) {
             return true;
         }
@@ -144,12 +399,10 @@
     }
 
     function handleToggle(id) {
-        // التحقق من القفل أولاً
         if (checkIsLocked()) {
             alert("الختمة مغلقة حالياً حتى الساعة الثامنة من صباح السبت.");
             return;
         }
-
         const mySavedPart = localStorage.getItem('myPart');
         if(stats[id]?.done) {
             if (mySavedPart == id) {
@@ -172,12 +425,61 @@
         const webLink = "https://eng-alibashir11.github.io/AI/"; 
         const title = document.getElementById('k-title').innerText;
         const msg = `📖 *منصة الختمة الأسبوعية* 📖%0A%0A*العنوان:* ${title}%0A%0A🔗 *رابط المشاركة المباشر:*%0A${webLink}`;
-        
         if (navigator.share) {
             navigator.share({ title: title, url: webLink }).catch(() => window.open(`https://wa.me/?text=${msg}`, '_blank'));
         } else {
             window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
+    }
+
+    function formatDateWithArabicMonth(date) {
+        const months = ["كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"];
+        const day = date.getDate();
+        const month = months[date.getMonth()];
+        const weekdays = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        const weekday = weekdays[date.getDay()];
+        return `${weekday} ${day}_${month}`;
+    }
+
+    function sendKhatmaReportToWhatsApp() {
+        const now = new Date();
+        const lastSaturday = new Date(now);
+        const satDiff = (now.getDay() + 1) % 7; 
+        lastSaturday.setDate(now.getDate() - satDiff);
+        const nextFriday = new Date(lastSaturday);
+        nextFriday.setDate(lastSaturday.getDate() + 6);
+        
+        const satFormatted = formatDateWithArabicMonth(lastSaturday);
+        const friFormatted = formatDateWithArabicMonth(nextFriday);
+        
+        const days = document.getElementById('d-val').innerText;
+        const hours = document.getElementById('h-val').innerText;
+        const minutes = document.getElementById('m-val').innerText;
+        let timeRemaining = `${days} يوم و ${hours} ساعة و ${minutes} دقيقة`;
+        if (checkIsLocked()) timeRemaining = "الختمة مغلقة حالياً";
+        let doneCount = 0;
+        for(let i=0; i<30; i++) if(stats[i]?.done) doneCount++;
+        let remCount = 30 - doneCount;
+        const selectedAyah = getCurrentWeeklyAyah();
+        const currentStyle = currentWeeklySymbols;
+        
+        let msg = `📊 *الختمة الأسبوعية* 📊%0A%0A`;
+        msg += `${currentStyle.globeSymbol}*${khatmaTitle}*${currentStyle.globeSymbol}%0A`;
+        msg += `✨ ${selectedAyah} ✨%0A%0A`;
+        msg += `(الأجزاء المنتهية)✅ : *${doneCount}*%0A`;
+        msg += `(الأجزاء المتبقية)❌ : *${remCount}*%0A`;
+        msg += `📅: ${satFormatted} ⬅️ ${friFormatted}%0A`;
+        msg += `⌛ ${timeRemaining}%0A%0A`;
+        msg += `📋 *قائمة المشاركين وتوزيع الأجزاء:*%0A`;
+        
+        for(let i=0; i<30; i++) {
+            const isDone = stats[i]?.done;
+            const statusIcon = isDone ? '✅' : '⚪';
+            const participantName = names[i] || 'غير محدد';
+            msg += `${currentStyle.exclamationSymbol} ${participantName} ${statusIcon} ${currentStyle.arrowSymbol} جزء ${currentStyle.bracketStart}${i+1 < 10 ? '0'+(i+1) : (i+1)}${currentStyle.bracketEnd}%0A`;
+            if ((i + 1) % 10 === 0 && i !== 29) msg += `..................................................%0A`;
+        }
+        window.open(`https://wa.me/?text=${msg}`, '_blank');
     }
 
     function updateTimer() {
@@ -187,46 +489,77 @@
             document.getElementById('m-val').innerText = "0";
             return;
         }
-
         const now = new Date(); let friday = new Date();
         friday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7); friday.setHours(12, 0, 0, 0);
-        
-        // إذا كان الوقت الحالي بعد جمعة هذا الأسبوع، ننتقل للجمعة القادمة
         if (now > friday) friday.setDate(friday.getDate() + 7);
-        
         const diff = friday - now;
         document.getElementById('d-val').innerText = Math.floor(diff / 86400000);
         document.getElementById('h-val').innerText = Math.floor((diff % 86400000) / 3600000);
         document.getElementById('m-val').innerText = Math.floor((diff % 3600000) / 60000);
     }
 
-    function askAdmin() { if(prompt("الرمز:") === "1234") toggleAdmin(); }
+    window.askAdmin = function() { 
+        const entered = prompt("🔐 أدخل رمز الدخول:");
+        if(entered === adminCode) toggleAdmin();
+        else if(entered !== null) alert("الرمز غير صحيح");
+    };
+    
     function toggleAdmin() {
         const p = document.getElementById('admin-panel'); const o = document.getElementById('ovl');
         const show = p.style.display !== 'block'; p.style.display = show ? 'block' : 'none'; o.style.display = show ? 'block' : 'none';
-        if(show) {
+        if(show && names.length) {
             document.getElementById('names-list').innerHTML = names.map((n, i) => `
                 <div style="margin:8px 0; display:flex; align-items:center; font-family:sans-serif;">
                     <span style="width:25px;">${i+1}</span>
                     <input type="text" id="in-${i}" value="${n}" style="flex:1; padding:4px;">
                     ${stats[i]?.done ? `<button class="reset-single" onclick="resetOne(${i})">تصفير</button>` : ''}
                 </div>`).join('');
+            updateCodeDisplay();
+            // تحديث حقل الآية بالقيمة الحالية
+            const ayahInput = document.getElementById('customAyahInput');
+            if (ayahInput) {
+                const weekStart = getStartOfWeek();
+                const weekKey = weekStart.toISOString().split('T')[0];
+                const customAyah = localStorage.getItem(`customAyah_${weekKey}`);
+                if (customAyah) {
+                    ayahInput.value = customAyah;
+                } else {
+                    ayahInput.value = currentWeeklyAyah;
+                }
+            }
         }
     }
-    function resetOne(id) { if(confirm(`تصفير الجزء ${id+1}؟`)) db.ref('khatma_status/' + id).remove().then(() => toggleAdmin()); }
+    
+    function resetOne(id) { if(confirm(`تصفير الجزء ${id+1}؟`)) db.ref('khatma_status/' + id).remove().then(() => { if(document.getElementById('admin-panel').style.display === 'block') toggleAdmin(); }); }
+    
     function startNewKhatma() {
-        const t = prompt("العنوان:"); if(!t) return;
+        const t = prompt("العنوان الحالي (مثال: الختمة القرآنية رقم 10):"); if(!t) return;
         let nNames = [...names]; nNames.unshift(nNames.pop()); 
-        db.ref('settings').set({names: nNames, khatmaName: t}); db.ref('khatma_status').remove();
-        localStorage.removeItem('myPart'); toggleAdmin();
+        db.ref('settings').update({names: nNames, khatmaName: t}); db.ref('khatma_status').remove();
+        localStorage.removeItem('myPart');
+        refreshWeeklySymbols();
+        // حذف الآيات المخزنة للأسبوع الحالي لتبدأ من جديد
+        const weekStart = getStartOfWeek();
+        const weekKey = weekStart.toISOString().split('T')[0];
+        localStorage.removeItem(`weeklyAyah_${weekKey}`);
+        localStorage.removeItem(`customAyah_${weekKey}`);
+        setWeeklyAyah();
+        toggleAdmin();
+        alert("✅ تم بدء ختمة جديدة مع رموز وآية جديدة");
     }
+    
     function resetAllStatus() { if(confirm("تصفير الكل؟")) db.ref('khatma_status').remove(); localStorage.removeItem('myPart'); }
     function saveNames() {
         let n = []; for(let i=0; i<30; i++) n.push(document.getElementById(`in-${i}`).value);
         db.ref('settings/names').set(n).then(() => { alert("حفظ ✅"); toggleAdmin(); });
     }
     setInterval(updateTimer, 60000);
+    function animateAyahChange() {
+        const ayahDiv = document.getElementById('randomAyah');
+        if(ayahDiv) { ayahDiv.style.transition = "opacity 0.25s ease"; ayahDiv.style.opacity = "0.5"; setTimeout(() => { ayahDiv.style.opacity = "1"; }, 150); }
+    }
+    window.setRandomAyahForUI = setWeeklyAyah;
+    setWeeklyAyah();
 </script>
 </body>
 </html>
-
