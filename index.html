@@ -7,7 +7,7 @@
     <meta property="og:title" content="منصة الختمة الأسبوعية">
     <meta property="og:description" content="تابع إنجازك في الختمة الأسبوعية مباشرة">
     <meta property="og:image" content="https://i.ibb.co/vzPRmYn/quran-bg.jpg"> 
-    <meta property="og:type" content="website">
+    meta property="og:type" content="website">
 
     <title>ختمة القرآن الاسبوعية</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
@@ -37,7 +37,8 @@
         #admin-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; z-index: 2000; padding: 20px; border-radius: 20px; width: 90%; max-width: 450px; box-shadow: 0 0 50px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; }
         .btn-act { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; font-family: 'Changa', sans-serif; }
-        .reset-single { background: #e74c3c; color: white; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; cursor: pointer; }
+        .reset-single { background: #e74c3c; color: white; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; border: none; margin-right: 4px; }
+        .select-single { background: #2e7d32; color: white; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; border: none; margin-right: 4px; }
         .admin-code-input { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
         .admin-code-input input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-family: monospace; font-size: 1rem; text-align: center; }
         .btn-small { background: #16a085; color: white; padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
@@ -50,7 +51,8 @@
 <div class="overlay" id="ovl" onclick="toggleAdmin()"></div>
 <div id="admin-panel">
     <h3 style="text-align:center;">❂ إعدادات الختمة ⚝</h3>
-    <button class="btn-act" style="background:var(--main); color:white;" onclick="startNewKhatma()">⎆ ختمة جديدة + إزاحة الأسماء</button>
+    <button class="btn-act" style="background:#8e44ad; color:white;" onclick="changeKhatmaTitleOnly()">✏ تعديل اسم الختمة الحالية فقط</button>
+    <button class="btn-act" style="background:var(--main); color:white;" onclick="startNewKhatmaWithShift()">⎆ ختمة جديدة + إزاحة الأسماء والتصفير</button>
     <button class="btn-act" style="background:#e67e22; color:white;" onclick="sendKhatmaReportToWhatsApp()">💬 إرسال تقرير الختمة للواتساب</button>
     <button class="btn-act" style="background:#f39c12; color:white;" onclick="resetAllStatus()">✧ تصفير الإنجاز بالكامل</button>
     <button class="btn-act" style="background:#0088cc; color:white;" onclick="shareKhatmaLink()">🔗 مشاركة رابط الختمة للمجموعة</button>
@@ -120,7 +122,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     
-    // ================ قائمة آيات قصيرة (احتياطية في حال ترك الحقل فارغاً) ================
     const AYAH_COLLECTION = [
         "﴿ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ﴾",
         "﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾",
@@ -134,14 +135,13 @@
         "﴿ سُبْحَانَ رَبِّكَ رَبِّ الْعِزَّةِ ﴾",
         "﴿ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ﴾",
         "﴿ تَبَارَكَ اسْمُ رَبِّكَ ﴾",
-        "﴿ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ ﴾",
+        "﴿ اللَّهُ لَا إِلَٰهَ إِلَّا هوَ ﴾",
         "﴿ حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ ﴾",
         "﴿ إِنَّ اللَّهَ يُحِبُّ التَّوَّابِينَ ﴾",
         "﴿ إِنَّ اللَّهَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ ﴾",
         "﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾"
     ];
     
-    // دالة لتحديد آية الأسبوع (تفضيلية: من الحقل المخصص أولاً)
     let currentWeeklyAyah = AYAH_COLLECTION[0];
     
     function getStartOfWeek() {
@@ -158,18 +158,15 @@
         const weekStart = getStartOfWeek();
         const weekKey = weekStart.toISOString().split('T')[0];
         
-        // أولاً: نتحقق من وجود آية مخصصة من المستخدم
         const storedCustomAyah = localStorage.getItem(`customAyah_${weekKey}`);
         if (storedCustomAyah && storedCustomAyah.trim() !== "") {
             return storedCustomAyah;
         }
         
-        // ثانياً: نتحقق من وجود آية عشوائية سابقة
         const storedAyah = localStorage.getItem(`weeklyAyah_${weekKey}`);
         if (storedAyah) {
             return storedAyah;
         } else {
-            // ثالثاً: نختار آية عشوائية من القائمة
             const randomIndex = Math.floor(Math.random() * AYAH_COLLECTION.length);
             const newAyah = AYAH_COLLECTION[randomIndex];
             localStorage.setItem(`weeklyAyah_${weekKey}`, newAyah);
@@ -183,7 +180,6 @@
         if (ayahElement) {
             ayahElement.textContent = currentWeeklyAyah;
         }
-        // عرض الآية الحالية في حقل الإدخال عند فتح لوحة التحكم
         const inputField = document.getElementById('customAyahInput');
         if (inputField) {
             const weekStart = getStartOfWeek();
@@ -201,7 +197,6 @@
         return currentWeeklyAyah;
     }
     
-    // دالة لحفظ الآية المخصصة من المستخدم
     window.saveCustomAyah = function() {
         const inputField = document.getElementById('customAyahInput');
         let customText = inputField.value.trim();
@@ -209,14 +204,11 @@
         const weekKey = weekStart.toISOString().split('T')[0];
         
         if (customText === "") {
-            // إذا كان الحقل فارغاً، نحذف الآية المخصصة ونستخدم العشوائية
             localStorage.removeItem(`customAyah_${weekKey}`);
-            // حذف الآية العشوائية المخزنة لتوليد واحدة جديدة
             localStorage.removeItem(`weeklyAyah_${weekKey}`);
             setWeeklyAyah();
             alert("✅ تم التبديل إلى الوضع العشوائي (سيتم اختيار آية تلقائياً)");
         } else {
-            // حفظ الآية المخصصة
             localStorage.setItem(`customAyah_${weekKey}`, customText);
             currentWeeklyAyah = customText;
             const ayahElement = document.getElementById('randomAyah');
@@ -225,7 +217,6 @@
         }
     };
     
-    // الرموز الثابتة للأسبوع (🌍 و ⚡ و >> و ) و ()
     let currentWeeklySymbols = {
         globeSymbol: "🌍",
         exclamationSymbol: "⚡",
@@ -292,7 +283,6 @@
         }
     }, 60 * 60 * 1000);
     
-    // الأسماء الكاملة
     const defaultNames = [
         "حيدر المضحي", "حيدر الثلاج", "علي حسن الكعود", "صطيف ابو حسين", "حسن الحاج علي",
         "حمودي عايد الكعود", "حسن مخيليل", "حمودي الملا", "محمد صالح الكعود", "ايمن المضحي",
@@ -361,6 +351,11 @@
         khatmaTitle = data.settings.khatmaName || "الختمة القرآنية";
         document.getElementById('k-title').innerText = khatmaTitle;
         render(); updateTimer();
+        
+        const adminPanel = document.getElementById('admin-panel');
+        if (adminPanel && adminPanel.style.display === 'block') {
+            refreshAdminNamesList();
+        }
     });
 
     function render() {
@@ -392,7 +387,7 @@
         const now = new Date();
         const day = now.getDay(); 
         const hour = now.getHours();
-        if ((day === 5 && hour >= 12) || (day === 6 && hour < 8)) {
+        if ((day === 5 && hour >= 12) || (day === 6 && hour < 7)) {
             return true;
         }
         return false;
@@ -400,7 +395,7 @@
 
     function handleToggle(id) {
         if (checkIsLocked()) {
-            alert("الختمة مغلقة حالياً حتى الساعة الثامنة من صباح السبت.");
+            alert("الختمة مغلقة حالياً حتى الساعة السابعة من صباح السبت.");
             return;
         }
         const mySavedPart = localStorage.getItem('myPart');
@@ -441,6 +436,7 @@
         return `${weekday} ${day}_${month}`;
     }
 
+    // دالة إرسال التقرير بالشكل الجديد المطلوب
     function sendKhatmaReportToWhatsApp() {
         const now = new Date();
         const lastSaturday = new Date(now);
@@ -455,19 +451,25 @@
         const days = document.getElementById('d-val').innerText;
         const hours = document.getElementById('h-val').innerText;
         const minutes = document.getElementById('m-val').innerText;
-        let timeRemaining = `${days} يوم و ${hours} ساعة و ${minutes} دقيقة`;
+        let timeRemaining = `${days} يوم _ ${hours} ساعة_ ${minutes} دقيقة`;
         if (checkIsLocked()) timeRemaining = "الختمة مغلقة حالياً";
         let doneCount = 0;
         for(let i=0; i<30; i++) if(stats[i]?.done) doneCount++;
         let remCount = 30 - doneCount;
         const selectedAyah = getCurrentWeeklyAyah();
         
-        let msg = `📊 *الختمة الأسبوعية* 📊%0A%0A`;
-        msg += `🌍*${khatmaTitle}*🌍%0A`;
-        msg += `✨ ${selectedAyah} ✨%0A%0A`;
-        msg += `(الأجزاء المنتهية)✅ : *${doneCount}*%0A`;
-        msg += `(الأجزاء المتبقية)❌ : *${remCount}*%0A`;
-        msg += `📅: ${satFormatted} ⬅️ ${friFormatted}%0A`;
+        // استخدام الرموز المتغيرة من currentWeeklySymbols
+        const dynamicSymbolRight = currentWeeklySymbols.exclamationSymbol;      // الرمز على يمين الاسم (⚡ وغيرها)
+        const arrowSymbol = currentWeeklySymbols.arrowSymbol;                  // السهم ( >> )
+        const leftBracket = currentWeeklySymbols.bracketStart;                 // القوس الأيسر 【
+        const rightBracket = currentWeeklySymbols.bracketEnd;                  // القوس الأيمن 〕
+        
+        let msg = `📜*الختمة الأسبوعية*📜%0A%0A`;
+        msg += `🔖*${khatmaTitle}*🔖%0A`;
+        msg += `﴿${selectedAyah}﴾ %0A%0A`;
+        msg += `*الأجزاء المنتهية*✅ : *${doneCount}*%0A`;
+        msg += `*الأجزاء المتبقية*❌ : *${remCount}*%0A`;
+        msg += `¶ *${satFormatted} § ${friFormatted}*%0A`;
         msg += `⌛ ${timeRemaining}%0A%0A`;
         msg += `📋 *قائمة المشاركين وتوزيع الأجزاء:*%0A`;
         
@@ -475,7 +477,8 @@
             const isDone = stats[i]?.done;
             const statusIcon = isDone ? '✅' : '⚪';
             const participantName = names[i] || 'غير محدد';
-            msg += `⚡ ${participantName} ${statusIcon} >> جزء 【${i+1 < 10 ? '0'+(i+1) : (i+1)}〕%0A`;
+            // التنسيق الجديد: (الرمز على يمين الاسم) + (الاسم) + (السهم) + (القوس الأيسر) + (رقم الجزء) + (القوس الأيمن)
+            msg += `${dynamicSymbolRight}${participantName}${statusIcon}${arrowSymbol}${leftBracket}ج(${i+1})${rightBracket}%0A`;
             if ((i + 1) % 10 === 0 && i !== 29) msg += `..................................................%0A`;
         }
         window.open(`https://wa.me/?text=${msg}`, '_blank');
@@ -507,14 +510,8 @@
         const p = document.getElementById('admin-panel'); const o = document.getElementById('ovl');
         const show = p.style.display !== 'block'; p.style.display = show ? 'block' : 'none'; o.style.display = show ? 'block' : 'none';
         if(show && names.length) {
-            document.getElementById('names-list').innerHTML = names.map((n, i) => `
-                <div style="margin:8px 0; display:flex; align-items:center; font-family:sans-serif;">
-                    <span style="width:25px;">${i+1}</span>
-                    <input type="text" id="in-${i}" value="${n}" style="flex:1; padding:4px;">
-                    ${stats[i]?.done ? `<button class="reset-single" onclick="resetOne(${i})">تصفير</button>` : ''}
-                </div>`).join('');
+            refreshAdminNamesList();
             updateCodeDisplay();
-            // تحديث حقل الآية بالقيمة الحالية
             const ayahInput = document.getElementById('customAyahInput');
             if (ayahInput) {
                 const weekStart = getStartOfWeek();
@@ -529,23 +526,71 @@
         }
     }
     
-    function resetOne(id) { if(confirm(`تصفير الجزء ${id+1}؟`)) db.ref('khatma_status/' + id).remove().then(() => { if(document.getElementById('admin-panel').style.display === 'block') toggleAdmin(); }); }
+    function refreshAdminNamesList() {
+        document.getElementById('names-list').innerHTML = names.map((n, i) => `
+            <div style="margin:8px 0; display:flex; align-items:center; font-family:sans-serif;">
+                <span style="width:25px;">${i+1}</span>
+                <input type="text" id="in-${i}" value="${n}" style="flex:1; padding:4px;">
+                ${stats[i]?.done ? 
+                    `<button class="reset-single" onclick="resetOne(${i})">تصفير</button>` : 
+                    `<button class="select-single" onclick="selectOneFromAdmin(${i})">إكمال</button>`
+                }
+            </div>`).join('');
+    }
     
-    function startNewKhatma() {
-        const t = prompt("العنوان الحالي (مثال: الختمة القرآنية رقم 10):"); if(!t) return;
-        let nNames = [...names]; nNames.unshift(nNames.pop()); 
-        db.ref('settings').update({names: nNames, khatmaName: t}); db.ref('khatma_status').remove();
+    function resetOne(id) { 
+        if(confirm(`تصفير الجزء ${id+1}؟`)) {
+            db.ref('khatma_status/' + id).remove().then(() => {});
+        } 
+    }
+    
+    window.selectOneFromAdmin = function(id) {
+        if(confirm(`تعيين الجزء ${id+1} كمنجز باسم (${names[id]})؟`)) {
+            const now = new Date();
+            const timeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+            const dateStr = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
+            db.ref('khatma_status/' + id).set({
+                done: true, 
+                time: timeStr, 
+                date: dateStr, 
+                unix: Date.now()
+            });
+        }
+    };
+    
+    window.changeKhatmaTitleOnly = function() {
+        const currentTitle = document.getElementById('k-title').innerText;
+        const newTitle = prompt("أدخل اسم الختمة الجديد فقط (مثال: الختمة القرآنية رقم 10):", currentTitle);
+        if(!newTitle || newTitle.trim() === "") return;
+        
+        db.ref('settings').update({ khatmaName: newTitle }).then(() => {
+            alert("✅ تم تحديث اسم الختمة بنجاح.");
+            toggleAdmin();
+        }).catch(err => {
+            alert("حدث خطأ أثناء تعديل الاسم.");
+            console.error(err);
+        });
+    };
+
+    window.startNewKhatmaWithShift = function() {
+        if(!confirm("هل أنت متأكد من بدء أسبوع جديد؟ سيتم تدوير (إزاحة) الأسماء تلقائياً وتصفير الحالات وتغيير الرموز.")) return;
+        
+        let nNames = [...names]; 
+        nNames.unshift(nNames.pop()); 
+        
+        db.ref('settings').update({names: nNames}); 
+        db.ref('khatma_status').remove();
         localStorage.removeItem('myPart');
         refreshWeeklySymbols();
-        // حذف الآيات المخزنة للأسبوع الحالي لتبدأ من جديد
+        
         const weekStart = getStartOfWeek();
         const weekKey = weekStart.toISOString().split('T')[0];
         localStorage.removeItem(`weeklyAyah_${weekKey}`);
         localStorage.removeItem(`customAyah_${weekKey}`);
         setWeeklyAyah();
         toggleAdmin();
-        alert("✅ تم بدء ختمة جديدة مع رموز وآية جديدة");
-    }
+        alert("✅ تم بدء الختمة وتدوير الأسماء بنجاح مع رموز وآية عشوائية جديدة.");
+    };
     
     function resetAllStatus() { if(confirm("تصفير الكل؟")) db.ref('khatma_status').remove(); localStorage.removeItem('myPart'); }
     function saveNames() {
