@@ -7,11 +7,10 @@
     <meta property="og:title" content="منصة الختمة الأسبوعية">
     <meta property="og:description" content="تابع إنجازك في الختمة الأسبوعية مباشرة">
     <meta property="og:image" content="https://i.ibb.co/vzPRmYn/quran-bg.jpg"> 
-    meta property="og:type" content="website">
+    <meta property="og:type" content="website">
 
     <title>ختمة القرآن الاسبوعية</title>
-    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,700&family=Changa:wght@300;500;700&display=swap');
@@ -109,18 +108,11 @@
 </div>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAPjrpRIeXlfGQVydcndV1etdy27455vVg",
-        authDomain: "khatma-test.firebaseapp.com",
-        databaseURL: "https://khatma-test-default-rtdb.firebaseio.com",
-        projectId: "khatma-test",
-        storageBucket: "khatma-test.firebasestorage.app",
-        messagingSenderId: "70199271332",
-        appId: "1:70199271332:web:5ea2400145c8917eefeb31"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    // Supabase configuration - البيانات الجديدة
+    const SUPABASE_URL = 'https://kmddevbkbbfvvsoajjrk.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_A30B1GPJUXwitAlO-W31HQ_BGvTHbQl';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     const AYAH_COLLECTION = [
         "﴿ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ﴾",
@@ -143,6 +135,10 @@
     ];
     
     let currentWeeklyAyah = AYAH_COLLECTION[0];
+    let names = [];
+    let stats = {};
+    let khatmaTitle = "";
+    let adminCode = "1234";
     
     function getStartOfWeek() {
         const now = new Date();
@@ -154,15 +150,17 @@
         return saturday;
     }
     
-    function getWeeklyAyah() {
+    function getWeekKey() {
         const weekStart = getStartOfWeek();
-        const weekKey = weekStart.toISOString().split('T')[0];
-        
+        return weekStart.toISOString().split('T')[0];
+    }
+    
+    function getWeeklyAyah() {
+        const weekKey = getWeekKey();
         const storedCustomAyah = localStorage.getItem(`customAyah_${weekKey}`);
         if (storedCustomAyah && storedCustomAyah.trim() !== "") {
             return storedCustomAyah;
         }
-        
         const storedAyah = localStorage.getItem(`weeklyAyah_${weekKey}`);
         if (storedAyah) {
             return storedAyah;
@@ -182,8 +180,7 @@
         }
         const inputField = document.getElementById('customAyahInput');
         if (inputField) {
-            const weekStart = getStartOfWeek();
-            const weekKey = weekStart.toISOString().split('T')[0];
+            const weekKey = getWeekKey();
             const customAyah = localStorage.getItem(`customAyah_${weekKey}`);
             if (customAyah) {
                 inputField.value = customAyah;
@@ -200,8 +197,7 @@
     window.saveCustomAyah = function() {
         const inputField = document.getElementById('customAyahInput');
         let customText = inputField.value.trim();
-        const weekStart = getStartOfWeek();
-        const weekKey = weekStart.toISOString().split('T')[0];
+        const weekKey = getWeekKey();
         
         if (customText === "") {
             localStorage.removeItem(`customAyah_${weekKey}`);
@@ -232,8 +228,7 @@
     const BRACKET_END_POOL = [")", "]", "}", "⟩", "】", "〕", "》"];
     
     function getWeeklySymbols() {
-        const weekStart = getStartOfWeek();
-        const weekKey = weekStart.toISOString().split('T')[0];
+        const weekKey = getWeekKey();
         const storedSymbols = localStorage.getItem(`weeklySymbolsV2_${weekKey}`);
         if (storedSymbols) {
             return JSON.parse(storedSymbols);
@@ -261,27 +256,10 @@
     }
     
     function refreshWeeklySymbols() {
-        const weekStart = getStartOfWeek();
-        const weekKey = weekStart.toISOString().split('T')[0];
+        const weekKey = getWeekKey();
         localStorage.removeItem(`weeklySymbolsV2_${weekKey}`);
         setWeeklySymbols();
     }
-    
-    setWeeklyAyah();
-    setWeeklySymbols();
-    
-    setInterval(() => {
-        const newAyah = getWeeklyAyah();
-        if (newAyah !== currentWeeklyAyah) {
-            currentWeeklyAyah = newAyah;
-            const ayahElement = document.getElementById('randomAyah');
-            if (ayahElement) ayahElement.textContent = currentWeeklyAyah;
-        }
-        const newSymbols = getWeeklySymbols();
-        if (JSON.stringify(newSymbols) !== JSON.stringify(currentWeeklySymbols)) {
-            currentWeeklySymbols = newSymbols;
-        }
-    }, 60 * 60 * 1000);
     
     const defaultNames = [
         "حيدر المضحي", "حيدر الثلاج", "علي حسن الكعود", "صطيف ابو حسين", "حسن الحاج علي",
@@ -291,76 +269,92 @@
         "محمود", "خضر", "فادي مخيليل", "عدنان عثمان", "حسين مخيليل",
         "رضوان السالم", "عامر المذري", "العكيد", "صالح حسين الكعود", "نزهان الكعود"
     ];
-
-    let names = []; let stats = {}; let khatmaTitle = "";
-    let adminCode = "1234";
     
-    function loadAdminCode() {
-        db.ref('settings/adminCode').once('value', (snap) => {
-            if(snap.exists()) {
-                adminCode = snap.val();
-            } else {
-                db.ref('settings/adminCode').set("1234");
-                adminCode = "1234";
+    async function loadData() {
+        try {
+            const { data: settingsData, error: settingsError } = await supabase
+                .from('settings')
+                .select('*')
+                .single();
+            
+            if (settingsError && settingsError.code !== 'PGRST116') {
+                console.error('Error loading settings:', settingsError);
             }
-            updateCodeDisplay();
-        });
+            
+            if (settingsData) {
+                names = settingsData.names || defaultNames;
+                khatmaTitle = settingsData.khatmaName || "الختمة القرآنية";
+                adminCode = settingsData.adminCode || "1234";
+            } else {
+                names = [...defaultNames];
+                khatmaTitle = "الختمة القرآنية رقم (9)";
+                adminCode = "1234";
+                await supabase.from('settings').insert([{
+                    id: 1,
+                    names: names,
+                    khatmaName: khatmaTitle,
+                    adminCode: adminCode
+                }]);
+            }
+            
+            const { data: statusData, error: statusError } = await supabase
+                .from('khatma_status')
+                .select('*');
+            
+            if (statusError) {
+                console.error('Error loading status:', statusError);
+            }
+            
+            stats = {};
+            if (statusData) {
+                statusData.forEach(item => {
+                    stats[item.part_id] = {
+                        done: item.done,
+                        time: item.time,
+                        date: item.date,
+                        unix: item.unix
+                    };
+                });
+            }
+            
+            document.getElementById('k-title').innerText = khatmaTitle;
+            render();
+            updateTimer();
+            
+            const adminPanel = document.getElementById('admin-panel');
+            if (adminPanel && adminPanel.style.display === 'block') {
+                refreshAdminNamesList();
+            }
+        } catch (err) {
+            console.error('Error loading data:', err);
+        }
     }
     
-    function updateCodeDisplay() {
-        const displaySpan = document.getElementById('currentCodeDisplay');
-        if(displaySpan) displaySpan.innerText = "●'.'●";
-    }
+    supabase
+        .channel('settings_changes')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
+            if (payload.new) {
+                names = payload.new.names || names;
+                khatmaTitle = payload.new.khatmaName || khatmaTitle;
+                adminCode = payload.new.adminCode || adminCode;
+                document.getElementById('k-title').innerText = khatmaTitle;
+                render();
+                updateCodeDisplay();
+            }
+        })
+        .subscribe();
     
-    window.changeAdminCode = function() {
-        const newCodeInput = document.getElementById('newAdminCodeInput');
-        let newCode = newCodeInput.value.trim();
-        if(newCode === "") {
-            alert("الرجاء إدخال رمز جديد");
-            return;
-        }
-        if(!/^\d+$/.test(newCode)) {
-            alert("الرمز يجب أن يحتوي على أرقام فقط");
-            return;
-        }
-        db.ref('settings/adminCode').set(newCode).then(() => {
-            adminCode = newCode;
-            updateCodeDisplay();
-            alert(`✅ تم تغيير رمز الدخول بنجاح إلى: ${newCode}`);
-            newCodeInput.value = "";
-        }).catch(err => {
-            alert("حدث خطأ أثناء حفظ الرمز");
-            console.error(err);
-        });
-    };
+    supabase
+        .channel('khatma_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'khatma_status' }, payload => {
+            loadData();
+        })
+        .subscribe();
     
-    loadAdminCode();
-    db.ref('settings/adminCode').on('value', (snap) => {
-        if(snap.exists()) adminCode = snap.val();
-        else adminCode = "1234";
-    });
-    
-    const defaultNamesList = [...defaultNames];
-    db.ref().on('value', snap => {
-        const data = snap.val();
-        if(!data || !data.settings || !data.settings.names) {
-            db.ref('settings').update({ names: defaultNamesList, khatmaName: "الختمة القرآنية رقم (9)" });
-            return;
-        }
-        names = data.settings.names || defaultNamesList; stats = data.khatma_status || {};
-        khatmaTitle = data.settings.khatmaName || "الختمة القرآنية";
-        document.getElementById('k-title').innerText = khatmaTitle;
-        render(); updateTimer();
-        
-        const adminPanel = document.getElementById('admin-panel');
-        if (adminPanel && adminPanel.style.display === 'block') {
-            refreshAdminNamesList();
-        }
-    });
-
     function render() {
         const container = document.getElementById('grid-container');
-        container.innerHTML = ""; let doneList = [];
+        container.innerHTML = ""; 
+        let doneList = [];
         for(let i=0; i<30; i++) {
             const isDone = stats[i]?.done;
             if(isDone) doneList.push({ id: i, name: names[i], time: stats[i].time, date: stats[i].date, unix: stats[i].unix });
@@ -382,7 +376,7 @@
                 <span style="font-family:sans-serif; font-size:0.7rem; text-align:left;">📅 ${w.date}<br>⏱ ${w.time}</span>
             </div>`).join('') || "<p style='text-align:center; font-size:0.7rem; color:#aaa;'>بانتظار المنجزين...</p>";
     }
-
+    
     function checkIsLocked() {
         const now = new Date();
         const day = now.getDay(); 
@@ -392,8 +386,8 @@
         }
         return false;
     }
-
-    function handleToggle(id) {
+    
+    async function handleToggle(id) {
         if (checkIsLocked()) {
             alert("الختمة مغلقة حالياً حتى الساعة السابعة من صباح السبت.");
             return;
@@ -401,23 +395,40 @@
         const mySavedPart = localStorage.getItem('myPart');
         if(stats[id]?.done) {
             if (mySavedPart == id) {
-                if(confirm("❇ إلغاء القراءة؟")) db.ref('khatma_status/' + id).remove().then(() => localStorage.removeItem('myPart'));
-            } else { alert("الجزء محجوز."); }
+                if(confirm("❇ إلغاء القراءة؟")) {
+                    await supabase.from('khatma_status').delete().eq('part_id', id);
+                    localStorage.removeItem('myPart');
+                }
+            } else { 
+                alert("الجزء محجوز."); 
+            }
         } else {
-            if (mySavedPart !== null) { alert("ألغِ جزئك القديم أولاً."); return; }
+            if (mySavedPart !== null) { 
+                alert("ألغِ جزئك القديم أولاً."); 
+                return; 
+            }
             const now = new Date();
             const timeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
             const dateStr = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
-            db.ref('khatma_status/' + id).set({done: true, time: timeStr, date: dateStr, unix: Date.now()}).then(() => {
+            
+            const { error } = await supabase.from('khatma_status').insert([{
+                part_id: id,
+                done: true,
+                time: timeStr,
+                date: dateStr,
+                unix: Date.now()
+            }]);
+            
+            if (!error) {
                 localStorage.setItem('myPart', id);
                 const msg = `*تمت التلاوة والحمد لله* ❇%0A%0A*الختمة:* ${khatmaTitle}%0A*الاسم:* ${names[id]}%0A*الجزء:* ${id+1}%0A*التوقيت:* ${dateStr} _ ${timeStr}`;
                 window.open(`https://wa.me/?text=${msg}`, '_blank');
-            });
+            }
         }
     }
-
+    
     function shareKhatmaLink() {
-        const webLink = "https://eng-alibashir11.github.io/AI/"; 
+        const webLink = window.location.href;
         const title = document.getElementById('k-title').innerText;
         const msg = `📖 *منصة الختمة الأسبوعية* 📖%0A%0A*العنوان:* ${title}%0A%0A🔗 *رابط المشاركة المباشر:*%0A${webLink}`;
         if (navigator.share) {
@@ -426,7 +437,7 @@
             window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
     }
-
+    
     function formatDateWithArabicMonth(date) {
         const months = ["كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"];
         const day = date.getDate();
@@ -435,8 +446,7 @@
         const weekday = weekdays[date.getDay()];
         return `${weekday} ${day}_${month}`;
     }
-
-    // دالة إرسال التقرير بالشكل الجديد المطلوب
+    
     function sendKhatmaReportToWhatsApp() {
         const now = new Date();
         const lastSaturday = new Date(now);
@@ -458,11 +468,10 @@
         let remCount = 30 - doneCount;
         const selectedAyah = getCurrentWeeklyAyah();
         
-        // استخدام الرموز المتغيرة من currentWeeklySymbols
-        const dynamicSymbolRight = currentWeeklySymbols.exclamationSymbol;      // الرمز على يمين الاسم (⚡ وغيرها)
-        const arrowSymbol = currentWeeklySymbols.arrowSymbol;                  // السهم ( >> )
-        const leftBracket = currentWeeklySymbols.bracketStart;                 // القوس الأيسر 【
-        const rightBracket = currentWeeklySymbols.bracketEnd;                  // القوس الأيمن 〕
+        const dynamicSymbolRight = currentWeeklySymbols.exclamationSymbol;
+        const arrowSymbol = currentWeeklySymbols.arrowSymbol;
+        const leftBracket = currentWeeklySymbols.bracketStart;
+        const rightBracket = currentWeeklySymbols.bracketEnd;
         
         let msg = `📜*الختمة الأسبوعية*📜%0A%0A`;
         msg += `🔖*${khatmaTitle}*🔖%0A`;
@@ -477,13 +486,12 @@
             const isDone = stats[i]?.done;
             const statusIcon = isDone ? '✅' : '⚪';
             const participantName = names[i] || 'غير محدد';
-            // التنسيق الجديد: (الرمز على يمين الاسم) + (الاسم) + (السهم) + (القوس الأيسر) + (رقم الجزء) + (القوس الأيمن)
             msg += `${dynamicSymbolRight}${participantName}${statusIcon}${arrowSymbol}${leftBracket}ج(${i+1})${rightBracket}%0A`;
             if ((i + 1) % 10 === 0 && i !== 29) msg += `..................................................%0A`;
         }
         window.open(`https://wa.me/?text=${msg}`, '_blank');
     }
-
+    
     function updateTimer() {
         if (checkIsLocked()) {
             document.getElementById('d-val').innerText = "0";
@@ -499,7 +507,7 @@
         document.getElementById('h-val').innerText = Math.floor((diff % 86400000) / 3600000);
         document.getElementById('m-val').innerText = Math.floor((diff % 3600000) / 60000);
     }
-
+    
     window.askAdmin = function() { 
         const entered = prompt("🔐 أدخل رمز الدخول:");
         if(entered === adminCode) toggleAdmin();
@@ -507,15 +515,17 @@
     };
     
     function toggleAdmin() {
-        const p = document.getElementById('admin-panel'); const o = document.getElementById('ovl');
-        const show = p.style.display !== 'block'; p.style.display = show ? 'block' : 'none'; o.style.display = show ? 'block' : 'none';
+        const p = document.getElementById('admin-panel'); 
+        const o = document.getElementById('ovl');
+        const show = p.style.display !== 'block'; 
+        p.style.display = show ? 'block' : 'none'; 
+        o.style.display = show ? 'block' : 'none';
         if(show && names.length) {
             refreshAdminNamesList();
             updateCodeDisplay();
             const ayahInput = document.getElementById('customAyahInput');
             if (ayahInput) {
-                const weekStart = getStartOfWeek();
-                const weekKey = weekStart.toISOString().split('T')[0];
+                const weekKey = getWeekKey();
                 const customAyah = localStorage.getItem(`customAyah_${weekKey}`);
                 if (customAyah) {
                     ayahInput.value = customAyah;
@@ -538,53 +548,54 @@
             </div>`).join('');
     }
     
-    function resetOne(id) { 
+    async function resetOne(id) { 
         if(confirm(`تصفير الجزء ${id+1}؟`)) {
-            db.ref('khatma_status/' + id).remove().then(() => {});
+            await supabase.from('khatma_status').delete().eq('part_id', id);
         } 
     }
     
-    window.selectOneFromAdmin = function(id) {
+    window.selectOneFromAdmin = async function(id) {
         if(confirm(`تعيين الجزء ${id+1} كمنجز باسم (${names[id]})؟`)) {
             const now = new Date();
             const timeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
             const dateStr = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
-            db.ref('khatma_status/' + id).set({
-                done: true, 
-                time: timeStr, 
-                date: dateStr, 
+            await supabase.from('khatma_status').insert([{
+                part_id: id,
+                done: true,
+                time: timeStr,
+                date: dateStr,
                 unix: Date.now()
-            });
+            }]);
         }
     };
     
-    window.changeKhatmaTitleOnly = function() {
+    window.changeKhatmaTitleOnly = async function() {
         const currentTitle = document.getElementById('k-title').innerText;
         const newTitle = prompt("أدخل اسم الختمة الجديد فقط (مثال: الختمة القرآنية رقم 10):", currentTitle);
         if(!newTitle || newTitle.trim() === "") return;
         
-        db.ref('settings').update({ khatmaName: newTitle }).then(() => {
+        const { error } = await supabase.from('settings').update({ khatmaName: newTitle }).eq('id', 1);
+        if (!error) {
             alert("✅ تم تحديث اسم الختمة بنجاح.");
             toggleAdmin();
-        }).catch(err => {
+        } else {
             alert("حدث خطأ أثناء تعديل الاسم.");
-            console.error(err);
-        });
+            console.error(error);
+        }
     };
-
-    window.startNewKhatmaWithShift = function() {
+    
+    window.startNewKhatmaWithShift = async function() {
         if(!confirm("هل أنت متأكد من بدء أسبوع جديد؟ سيتم تدوير (إزاحة) الأسماء تلقائياً وتصفير الحالات وتغيير الرموز.")) return;
         
         let nNames = [...names]; 
         nNames.unshift(nNames.pop()); 
         
-        db.ref('settings').update({names: nNames}); 
-        db.ref('khatma_status').remove();
+        await supabase.from('settings').update({ names: nNames }).eq('id', 1);
+        await supabase.from('khatma_status').delete().neq('part_id', -1);
         localStorage.removeItem('myPart');
         refreshWeeklySymbols();
         
-        const weekStart = getStartOfWeek();
-        const weekKey = weekStart.toISOString().split('T')[0];
+        const weekKey = getWeekKey();
         localStorage.removeItem(`weeklyAyah_${weekKey}`);
         localStorage.removeItem(`customAyah_${weekKey}`);
         setWeeklyAyah();
@@ -592,18 +603,78 @@
         alert("✅ تم بدء الختمة وتدوير الأسماء بنجاح مع رموز وآية عشوائية جديدة.");
     };
     
-    function resetAllStatus() { if(confirm("تصفير الكل؟")) db.ref('khatma_status').remove(); localStorage.removeItem('myPart'); }
-    function saveNames() {
-        let n = []; for(let i=0; i<30; i++) n.push(document.getElementById(`in-${i}`).value);
-        db.ref('settings/names').set(n).then(() => { alert("حفظ ✅"); toggleAdmin(); });
+    async function resetAllStatus() { 
+        if(confirm("تصفير الكل؟")) {
+            await supabase.from('khatma_status').delete().neq('part_id', -1);
+            localStorage.removeItem('myPart');
+        } 
     }
-    setInterval(updateTimer, 60000);
-    function animateAyahChange() {
-        const ayahDiv = document.getElementById('randomAyah');
-        if(ayahDiv) { ayahDiv.style.transition = "opacity 0.25s ease"; ayahDiv.style.opacity = "0.5"; setTimeout(() => { ayahDiv.style.opacity = "1"; }, 150); }
+    
+    async function saveNames() {
+        let n = []; 
+        for(let i=0; i<30; i++) n.push(document.getElementById(`in-${i}`).value);
+        await supabase.from('settings').update({ names: n }).eq('id', 1);
+        alert("حفظ ✅");
+        toggleAdmin();
     }
-    window.setRandomAyahForUI = setWeeklyAyah;
+    
+    async function loadAdminCode() {
+        const { data, error } = await supabase.from('settings').select('adminCode').single();
+        if (data && data.adminCode) {
+            adminCode = data.adminCode;
+        } else {
+            adminCode = "1234";
+            await supabase.from('settings').update({ adminCode: "1234" }).eq('id', 1);
+        }
+        updateCodeDisplay();
+    }
+    
+    function updateCodeDisplay() {
+        const displaySpan = document.getElementById('currentCodeDisplay');
+        if(displaySpan) displaySpan.innerText = "●'.'●";
+    }
+    
+    window.changeAdminCode = async function() {
+        const newCodeInput = document.getElementById('newAdminCodeInput');
+        let newCode = newCodeInput.value.trim();
+        if(newCode === "") {
+            alert("الرجاء إدخال رمز جديد");
+            return;
+        }
+        if(!/^\d+$/.test(newCode)) {
+            alert("الرمز يجب أن يحتوي على أرقام فقط");
+            return;
+        }
+        const { error } = await supabase.from('settings').update({ adminCode: newCode }).eq('id', 1);
+        if (!error) {
+            adminCode = newCode;
+            updateCodeDisplay();
+            alert(`✅ تم تغيير رمز الدخول بنجاح إلى: ${newCode}`);
+            newCodeInput.value = "";
+        } else {
+            alert("حدث خطأ أثناء حفظ الرمز");
+            console.error(error);
+        }
+    };
+    
     setWeeklyAyah();
+    setWeeklySymbols();
+    loadAdminCode();
+    loadData();
+    
+    setInterval(updateTimer, 60000);
+    setInterval(() => {
+        const newAyah = getWeeklyAyah();
+        if (newAyah !== currentWeeklyAyah) {
+            currentWeeklyAyah = newAyah;
+            const ayahElement = document.getElementById('randomAyah');
+            if (ayahElement) ayahElement.textContent = currentWeeklyAyah;
+        }
+        const newSymbols = getWeeklySymbols();
+        if (JSON.stringify(newSymbols) !== JSON.stringify(currentWeeklySymbols)) {
+            currentWeeklySymbols = newSymbols;
+        }
+    }, 60 * 60 * 1000);
 </script>
 </body>
 </html>
